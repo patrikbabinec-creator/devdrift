@@ -1,0 +1,78 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import HeroSection from '../components/HeroSection.astro';
+import ChartSection from '../components/ChartSection.astro';
+import Footer from '../components/Footer.astro';
+import SkillFilters from '../components/SkillFilters';
+import PopulationChart from '../components/PopulationChart';
+import CategoryTrendChart from '../components/CategoryTrendChart';
+import ComplexityChart from '../components/ComplexityChart';
+---
+<BaseLayout>
+  <HeroSection />
+
+  <ChartSection
+    id="skills-timeline"
+    title="Senior Developer Skills Timeline"
+    subtitle="Market expectations · 1970–2026 · Logistic S-curve model · Mainstream software development"
+  >
+    <SkillFilters client:only="react" />
+  </ChartSection>
+
+  <ChartSection
+    id="population"
+    title="Developer Population"
+    subtitle="Estimated worldwide software developers · 1970–2026 · millions"
+  >
+    <PopulationChart client:only="react" />
+  </ChartSection>
+
+  <ChartSection
+    id="category-trends"
+    title="Skill Category Trends"
+    subtitle="Average expectation per category · 1970–2026"
+  >
+    <CategoryTrendChart client:only="react" />
+  </ChartSection>
+
+  <ChartSection
+    id="complexity"
+    title="Software Complexity Growth"
+    subtitle="Key complexity indicators · 1970–2026 · linear scale"
+  >
+    <ComplexityChart client:only="react" />
+  </ChartSection>
+
+  <!-- About / Methodology -->
+  <section style="padding:3.5rem 2rem;max-width:800px;margin:0 auto;">
+    <h2 style="
+      font-family:'Raleway','Arial Black',sans-serif;
+      font-size:1.8rem;
+      font-weight:800;
+      letter-spacing:-0.02em;
+      color:#F2F0E5;
+      margin-bottom:1rem;
+    ">About & Methodology</h2>
+
+    <div style="color:#94a3b8;line-height:1.8;font-size:0.97rem;">
+      <p style="margin-bottom:1rem;">
+        All skill values follow a <strong style="color:#F2F0E5;">logistic S-curve model</strong> — skills emerge slowly,
+        accelerate through adoption, then plateau at market saturation. The 0–10 scale represents market expectation,
+        not personal skill level: <strong style="color:#F2F0E5;">0</strong> = irrelevant or non-existent,
+        <strong style="color:#F2F0E5;">5</strong> = useful but not required,
+        <strong style="color:#F2F0E5;">8</strong> = expected of a senior developer,
+        <strong style="color:#F2F0E5;">10</strong> = table-stakes industry standard.
+      </p>
+      <p style="margin-bottom:1rem;">
+        Data is heuristic — not absolute truth. Validated against Stack Overflow Developer Surveys,
+        JetBrains Developer Ecosystem Reports, DORA State of DevOps, CNCF Annual Surveys, and Martin Fowler's writing.
+      </p>
+      <p>
+        This is an open community resource.
+        Contributions, corrections, and new skill proposals are welcome via GitHub.
+      </p>
+    </div>
+  </section>
+
+  <Footer />
+</BaseLayout>

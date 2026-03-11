@@ -1,0 +1,32 @@
+---
+export interface Props {
+  title?: string;
+  description?: string;
+}
+const {
+  title = 'DevDrift — How Programming Changed · 1970–2026',
+  description = 'An open-source timeline documenting how the skills and expectations of software developers have evolved from 1970 to 2026.'
+} = Astro.props;
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{title}</title>
+  <meta name="description" content={description} />
+  <meta property="og:title" content={title} />
+  <meta property="og:description" content={description} />
+  <meta property="og:type" content="website" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Raleway:wght@700;800;900&family=Inter:wght@400;500;600&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="/src/styles/global.css" />
+</head>
+<body class="min-h-screen" style="background:#1E1E1E;color:#F2F0E5;font-family:'Inter',system-ui,sans-serif;">
+  <slot />
+</body>
+</html>

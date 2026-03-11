@@ -1,0 +1,10 @@
+[
+  { "year": 1994, "label": "GoF Design Patterns" },
+  { "year": 1999, "label": "Refactoring book" },
+  { "year": 2001, "label": "Agile Manifesto" },
+  { "year": 2005, "label": "Git" },
+  { "year": 2008, "label": "GitHub" },
+  { "year": 2014, "label": "Microservices / Docker / K8s" },
+  { "year": 2019, "label": "GitHub Actions / OpenTelemetry" },
+  { "year": 2022, "label": "Copilot GA / ChatGPT" }
+]
