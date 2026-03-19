@@ -157,7 +157,7 @@ export default function CategoryTrendChart() {
           Overall Average
         </div>
       </div>
-      <div style={{ height: 460 }}><canvas ref={canvasRef} /></div>
+      <div style={{ height: typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches ? 320 : 460 }}><canvas ref={canvasRef} /></div>
     </div>
   );
 }

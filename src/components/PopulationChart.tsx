@@ -97,5 +97,6 @@ export default function PopulationChart() {
       });
   }, []);
 
-  return <div style={{ height: 380 }}><canvas ref={canvasRef} /></div>;
+  const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches;
+  return <div style={{ height: isMobile ? 280 : 380 }}><canvas ref={canvasRef} /></div>;
 }

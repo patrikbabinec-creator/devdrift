@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import SkillsChart from './SkillsChart';
+import { useMediaQuery } from './useMediaQuery';
 
 const CATEGORIES: Record<string, { label: string; color: string }> = {
   technical_core: { label: 'Programming',   color: '#60a5fa' },
@@ -21,15 +22,12 @@ interface SkillMeta {
 }
 
 export default function SkillFilters() {
-  const [activeCategories, setActiveCategories] = useState<Set<string>>(
-    new Set(ALL_KEYS)
-  );
+  const [activeCategories, setActiveCategories] = useState<Set<string>>(new Set(ALL_KEYS));
   const [hiddenSkills, setHiddenSkills] = useState<Set<string>>(new Set());
   const [skillsList, setSkillsList] = useState<SkillMeta[]>([]);
-  // Sub-filter is hidden by default; user can open it or it opens when a category is toggled
   const [subFilterOpen, setSubFilterOpen] = useState(false);
-  // Track if user has manually interacted with category filters (not "All")
-  const [userFilteredCategories, setUserFilteredCategories] = useState(false);
+  const [viewMode, setViewMode] = useState<'categories' | 'skills'>('categories');
+  const isMobile = useMediaQuery('(max-width: 768px)');
 
   useEffect(() => {
     fetch('/data/skills-timeline.json')
@@ -39,42 +37,54 @@ export default function SkillFilters() {
       });
   }, []);
 
-  function toggle(key: string) {
-    setActiveCategories(prev => {
-      const next = new Set(prev);
-      next.has(key) ? next.delete(key) : next.add(key);
-      return next;
-    });
-    // When toggling a category back on, unhide all its skills
-    setHiddenSkills(prev => {
-      const next = new Set(prev);
-      const catSkills = skillsList.filter(s => s.category === key);
-      catSkills.forEach(s => next.delete(s.name));
-      return next;
-    });
-    // Open sub-filter when user clicks a specific category
-    setUserFilteredCategories(true);
-    setSubFilterOpen(true);
+  function handleCategoryClick(key: string) {
+    if (viewMode === 'categories') {
+      // Drill down: show only this category's skills
+      setViewMode('skills');
+      setActiveCategories(new Set([key]));
+      setHiddenSkills(new Set());
+      setSubFilterOpen(true);
+    } else {
+      // Toggle category in skills view
+      setActiveCategories(prev => {
+        const next = new Set(prev);
+        next.has(key) ? next.delete(key) : next.add(key);
+        return next;
+      });
+      setHiddenSkills(prev => {
+        const next = new Set(prev);
+        const catSkills = skillsList.filter(s => s.category === key);
+        catSkills.forEach(s => next.delete(s.name));
+        return next;
+      });
+      setSubFilterOpen(true);
+    }
+  }
+
+  function backToOverview() {
+    setViewMode('categories');
+    setActiveCategories(new Set(ALL_KEYS));
+    setHiddenSkills(new Set());
+    setSubFilterOpen(false);
   }
 
   function selectAll() {
     setActiveCategories(new Set(ALL_KEYS));
     setHiddenSkills(new Set());
-    setUserFilteredCategories(false);
     setSubFilterOpen(false);
+    setViewMode('categories');
   }
 
   function selectNone() {
     setActiveCategories(new Set());
     setHiddenSkills(new Set());
-    setUserFilteredCategories(false);
     setSubFilterOpen(false);
   }
 
   function expandAll() {
+    setViewMode('skills');
     setActiveCategories(new Set(ALL_KEYS));
     setHiddenSkills(new Set());
-    setUserFilteredCategories(true);
     setSubFilterOpen(true);
   }
 
@@ -86,7 +96,7 @@ export default function SkillFilters() {
     });
   }
 
-  // Compute visible skills for sub-filter: show only active categories that have >1 skill
+  // Compute visible skills for sub-filter
   const visibleSkills = skillsList.filter(s => activeCategories.has(s.category));
   const catSkillCounts: Record<string, number> = {};
   visibleSkills.forEach(s => {
@@ -99,65 +109,62 @@ export default function SkillFilters() {
     border: '1.5px solid transparent',
     borderRadius: '999px',
     cursor: 'pointer',
-    fontSize: '0.9rem',
+    fontSize: isMobile ? '0.82rem' : '0.9rem',
     fontWeight: 600,
-    padding: '0.3rem 0.85rem',
+    padding: isMobile ? '0.45rem 0.8rem' : '0.3rem 0.85rem',
+    minHeight: isMobile ? 40 : 'auto',
     transition: 'opacity 0.15s, transform 0.1s',
-    userSelect: 'none',
+    userSelect: 'none' as const,
     fontFamily: 'Inter, system-ui, sans-serif',
   };
 
   const subBtnBase: React.CSSProperties = {
     ...btnBase,
-    fontSize: '0.8rem',
-    padding: '0.2rem 0.65rem',
+    fontSize: isMobile ? '0.76rem' : '0.8rem',
+    padding: isMobile ? '0.35rem 0.65rem' : '0.2rem 0.65rem',
+    minHeight: isMobile ? 36 : 'auto',
     fontWeight: 500,
+  };
+
+  const utilBtnStyle: React.CSSProperties = {
+    ...btnBase,
+    background: '#2e2e2e',
+    borderColor: '#3a3a3a',
+    color: '#94a3b8',
   };
 
   return (
     <div>
-      {/* Category filter controls */}
+      {/* View mode indicator + controls */}
       <div style={{
         display: 'flex',
         flexWrap: 'wrap',
         alignItems: 'center',
-        gap: '0.5rem',
-        marginBottom: (subFilterOpen && hasSubFilterContent) ? '0.6rem' : '1.25rem',
+        gap: isMobile ? '0.4rem' : '0.5rem',
+        marginBottom: (viewMode === 'skills' && subFilterOpen && hasSubFilterContent) ? '0.6rem' : '1rem',
       }}>
-        <button
-          onClick={selectAll}
-          style={{
-            ...btnBase,
-            background: '#2e2e2e',
-            borderColor: '#3a3a3a',
-            color: '#94a3b8',
-          }}
-        >All</button>
-        <button
-          onClick={selectNone}
-          style={{
-            ...btnBase,
-            background: '#2e2e2e',
-            borderColor: '#3a3a3a',
-            color: '#94a3b8',
-          }}
-        >None</button>
-        <button
-          onClick={expandAll}
-          style={{
-            ...btnBase,
-            background: '#2e2e2e',
-            borderColor: '#3a3a3a',
-            color: '#94a3b8',
-          }}
-        >Expand All</button>
+        {viewMode === 'skills' && (
+          <button
+            onClick={backToOverview}
+            style={{
+              ...btnBase,
+              background: '#FFCD6818',
+              borderColor: '#FFCD68',
+              color: '#FFCD68',
+            }}
+          >← Overview</button>
+        )}
+
+        <button onClick={selectAll} style={utilBtnStyle}>All</button>
+        <button onClick={selectNone} style={utilBtnStyle}>None</button>
+        <button onClick={expandAll} style={utilBtnStyle}>Expand All</button>
 
         {Object.entries(CATEGORIES).map(([key, cat]) => {
           const isActive = activeCategories.has(key);
           return (
             <button
               key={key}
-              onClick={() => toggle(key)}
+              onClick={() => handleCategoryClick(key)}
               style={{
                 ...btnBase,
                 background: isActive ? `${cat.color}1a` : 'transparent',
@@ -170,14 +177,14 @@ export default function SkillFilters() {
         })}
       </div>
 
-      {/* Sub-filter: individual skills — only shown when opened */}
-      {subFilterOpen && hasSubFilterContent && (
+      {/* Sub-filter: individual skills — only in skills view */}
+      {viewMode === 'skills' && subFilterOpen && hasSubFilterContent && (
         <div style={{
           display: 'flex',
           flexWrap: 'wrap',
           alignItems: 'center',
-          gap: '0.4rem',
-          marginBottom: '1.25rem',
+          gap: isMobile ? '0.35rem' : '0.4rem',
+          marginBottom: '1rem',
           paddingLeft: '0.2rem',
         }}>
           <span
@@ -213,7 +220,11 @@ export default function SkillFilters() {
         </div>
       )}
 
-      <SkillsChart activeCategories={activeCategories} hiddenSkills={hiddenSkills} />
+      <SkillsChart
+        activeCategories={activeCategories}
+        hiddenSkills={hiddenSkills}
+        viewMode={viewMode}
+      />
     </div>
   );
 }

@@ -6,10 +6,7 @@ export interface Props {
 }
 const { id, title, subtitle } = Astro.props;
 ---
-<section
-  id={id}
-  style="padding:3.5rem 2rem;max-width:1400px;margin:0 auto;"
->
+<section id={id} class="chart-section">
   <div style="margin-bottom:1.5rem;">
     <h2 style="
       font-family:'Raleway','Arial Black',sans-serif;
@@ -24,13 +21,31 @@ const { id, title, subtitle } = Astro.props;
     )}
   </div>
 
-  <div style="
-    background:#252525;
-    border:1px solid #3a3a3a;
-    border-radius:1rem;
-    padding:1.5rem 1.5rem 1rem;
-    position:relative;
-  ">
+  <div class="chart-card">
     <slot />
   </div>
 </section>
+
+<style>
+  .chart-section {
+    padding: 3.5rem 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  .chart-card {
+    background: #252525;
+    border: 1px solid #3a3a3a;
+    border-radius: 1rem;
+    padding: 1.5rem 1.5rem 1rem;
+    position: relative;
+  }
+  @media (max-width: 768px) {
+    .chart-section {
+      padding: 2rem 0.75rem;
+    }
+    .chart-card {
+      padding: 0.75rem 0.5rem 0.5rem;
+      border-radius: 0.75rem;
+    }
+  }
+</style>

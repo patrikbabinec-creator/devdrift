@@ -114,5 +114,6 @@ export default function ComplexityChart() {
       });
   }, []);
 
-  return <div style={{ height: 480 }}><canvas ref={canvasRef} /></div>;
+  const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches;
+  return <div style={{ height: isMobile ? 320 : 480 }}><canvas ref={canvasRef} /></div>;
 }
