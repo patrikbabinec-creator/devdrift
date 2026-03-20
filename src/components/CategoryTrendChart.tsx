@@ -42,13 +42,30 @@ function computeAvgs(skills: SkillData[], year: number): number[] {
   });
 }
 
+// Compute label positions around the radar — same geometry Chart.js uses
+function getLabelPositions(cx: number, cy: number, radius: number, count: number, offset: number) {
+  const positions: { x: number; y: number; anchor: string }[] = [];
+  for (let i = 0; i < count; i++) {
+    const angle = (2 * Math.PI * i) / count - Math.PI / 2;
+    const x = cx + Math.cos(angle) * (radius + offset);
+    const y = cy + Math.sin(angle) * (radius + offset);
+    // Determine text anchor based on position
+    let anchor = 'center';
+    if (x < cx - 10) anchor = 'right';
+    else if (x > cx + 10) anchor = 'left';
+    positions.push({ x, y, anchor });
+  }
+  return positions;
+}
+
 export default function CategoryTrendChart() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const chartRef = useRef<Chart | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [skills, setSkills] = useState<SkillData[]>([]);
   const [selectedYear, setSelectedYear] = useState(2026);
   const [compareYear, setCompareYear] = useState<number | null>(2000);
-  const [hoveredCat, setHoveredCat] = useState<string | null>(null);
+  const [labelPositions, setLabelPositions] = useState<{ x: number; y: number; anchor: string }[]>([]);
   const isMobile = useMediaQuery('(max-width: 768px)');
 
   useEffect(() => {
@@ -56,6 +73,38 @@ export default function CategoryTrendChart() {
       .then(r => r.json())
       .then(data => setSkills(data.skills));
   }, []);
+
+  // After chart renders, read the radial scale geometry to position HTML labels
+  const updateLabelPositions = useCallback(() => {
+    const chart = chartRef.current;
+    const container = containerRef.current;
+    if (!chart || !container) return;
+
+    const rScale = chart.scales.r as any;
+    if (!rScale) return;
+
+    const canvas = chart.canvas;
+    const rect = canvas.getBoundingClientRect();
+    const containerRect = container.getBoundingClientRect();
+
+    // Chart.js radial scale center and drawing radius in canvas pixels
+    const cxCanvas = rScale.xCenter;
+    const cyCanvas = rScale.yCenter;
+    const drawingRadius = rScale.drawingArea;
+
+    // Convert canvas pixels to CSS pixels relative to container
+    const scaleX = rect.width / canvas.width;
+    const scaleY = rect.height / canvas.height;
+    const offsetX = rect.left - containerRect.left;
+    const offsetY = rect.top - containerRect.top;
+
+    const cx = cxCanvas * scaleX + offsetX;
+    const cy = cyCanvas * scaleY + offsetY;
+    const radius = drawingRadius * Math.min(scaleX, scaleY);
+
+    const labelOffset = isMobile ? 18 : 24;
+    setLabelPositions(getLabelPositions(cx, cy, radius, CAT_KEYS.length, labelOffset));
+  }, [isMobile]);
 
   const buildChart = useCallback(() => {
     if (!skills.length || !canvasRef.current) return;
@@ -132,15 +181,8 @@ export default function CategoryTrendChart() {
               color: 'rgba(58,58,58,0.4)',
             },
             pointLabels: {
-              color: (ctx: any) => {
-                const key = CAT_KEYS[ctx.index];
-                return CATEGORIES[key]?.color ?? '#94a3b8';
-              },
-              font: {
-                size: isMobileNow ? 11 : 13,
-                weight: '600',
-                family: 'Inter, system-ui, sans-serif',
-              },
+              // Hide native labels — we render our own HTML labels
+              display: false,
             },
           },
         },
@@ -174,9 +216,22 @@ export default function CategoryTrendChart() {
         },
       },
     });
-  }, [skills, selectedYear, compareYear, isMobile]);
 
-  useEffect(() => { buildChart(); return () => { chartRef.current?.destroy(); chartRef.current = null; }; }, [buildChart]);
+    // Position HTML labels after chart renders
+    requestAnimationFrame(() => updateLabelPositions());
+  }, [skills, selectedYear, compareYear, isMobile, updateLabelPositions]);
+
+  useEffect(() => {
+    buildChart();
+    return () => { chartRef.current?.destroy(); chartRef.current = null; };
+  }, [buildChart]);
+
+  // Recalc positions on resize
+  useEffect(() => {
+    const handler = () => updateLabelPositions();
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, [updateLabelPositions]);
 
   const sliderBtnStyle = (isActive: boolean): React.CSSProperties => ({
     background: isActive ? '#FFCD6825' : '#2e2e2e',
@@ -257,72 +312,83 @@ export default function CategoryTrendChart() {
         )}
       </div>
 
-      {/* Chart */}
+      {/* Chart with HTML label overlays */}
       <div
+        ref={containerRef}
         style={{ height: isMobile ? 340 : 480, maxWidth: 600, margin: '0 auto', position: 'relative' }}
-        onMouseMove={(e) => {
-          const chart = chartRef.current;
-          if (!chart) return;
-          const rScale = chart.scales.r as any;
-          if (!rScale) return;
-          const canvas = chart.canvas;
-          const rect = canvas.getBoundingClientRect();
-          const scaleX = canvas.width / rect.width;
-          const scaleY = canvas.height / rect.height;
-          const mx = (e.clientX - rect.left) * scaleX;
-          const my = (e.clientY - rect.top) * scaleY;
-
-          let found: string | null = null;
-          // Use _pointLabelItems which has the actual text bounding box
-          const items = rScale._pointLabelItems;
-          if (items) {
-            for (let i = 0; i < CAT_KEYS.length; i++) {
-              const item = items[i];
-              if (!item) continue;
-              // Check if mouse is within the label bounding box (with padding)
-              const pad = 8;
-              if (mx >= item.left - pad && mx <= item.right + pad &&
-                  my >= item.top - pad && my <= item.bottom + pad) {
-                found = CAT_KEYS[i];
-                break;
-              }
-            }
-          }
-          setHoveredCat(found);
-        }}
-        onMouseLeave={() => setHoveredCat(null)}
       >
         <canvas ref={canvasRef} />
 
-        {/* Category label tooltip */}
-        {hoveredCat && (
-          <div style={{
-            position: 'absolute',
-            bottom: 8,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            background: 'rgba(30,30,30,0.95)',
-            border: `1px solid ${CATEGORIES[hoveredCat].color}55`,
-            borderRadius: '0.5rem',
-            padding: '0.5rem 0.8rem',
-            maxWidth: isMobile ? '90%' : 400,
-            pointerEvents: 'none',
-            zIndex: 10,
-          }}>
-            <div style={{
-              color: CATEGORIES[hoveredCat].color,
-              fontWeight: 700,
-              fontSize: '0.85rem',
-              marginBottom: '0.2rem',
-              fontFamily: 'Raleway, Arial Black, sans-serif',
-            }}>
-              {CATEGORIES[hoveredCat].label}
+        {/* HTML labels positioned over the chart */}
+        {labelPositions.map((pos, i) => {
+          const key = CAT_KEYS[i];
+          const cat = CATEGORIES[key];
+          if (!cat) return null;
+
+          const fontSize = isMobile ? 11 : 13;
+          const transform =
+            pos.anchor === 'right' ? 'translate(-100%, -50%)' :
+            pos.anchor === 'left'  ? 'translate(0, -50%)' :
+            'translate(-50%, -50%)';
+
+          return (
+            <div
+              key={key}
+              className="radar-label"
+              style={{
+                position: 'absolute',
+                left: pos.x,
+                top: pos.y,
+                transform,
+                cursor: 'default',
+                zIndex: 5,
+              }}
+            >
+              <span style={{
+                color: cat.color,
+                fontWeight: 600,
+                fontSize,
+                fontFamily: 'Inter, system-ui, sans-serif',
+                whiteSpace: 'nowrap',
+              }}>
+                {cat.label}
+              </span>
+              <div className="radar-label-tooltip" style={{
+                display: 'none',
+                position: 'absolute',
+                bottom: 'calc(100% + 6px)',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                background: 'rgba(30,30,30,0.95)',
+                border: `1px solid ${cat.color}55`,
+                borderRadius: '0.5rem',
+                padding: '0.5rem 0.8rem',
+                width: isMobile ? 200 : 280,
+                pointerEvents: 'none',
+                zIndex: 20,
+              }}>
+                <div style={{
+                  color: cat.color,
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  marginBottom: '0.2rem',
+                  fontFamily: 'Raleway, Arial Black, sans-serif',
+                }}>
+                  {cat.label}
+                </div>
+                <div style={{ color: '#94a3b8', fontSize: '0.78rem', lineHeight: 1.5 }}>
+                  {cat.desc}
+                </div>
+              </div>
             </div>
-            <div style={{ color: '#94a3b8', fontSize: '0.78rem', lineHeight: 1.5 }}>
-              {CATEGORIES[hoveredCat].desc}
-            </div>
-          </div>
-        )}
+          );
+        })}
+
+        {/* CSS for hover — inline styles can't do :hover, so use a style tag */}
+        <style dangerouslySetInnerHTML={{ __html: `
+          .radar-label:hover .radar-label-tooltip { display: block !important; }
+          .radar-label:hover > span { text-decoration: underline; text-underline-offset: 3px; }
+        `}} />
       </div>
     </div>
   );
