@@ -12,16 +12,16 @@ import { useMediaQuery } from './useMediaQuery';
 
 Chart.register(RadarController, RadialLinearScale, LineElement, PointElement, Filler, Tooltip);
 
-const CATEGORIES: Record<string, { label: string; color: string }> = {
-  technical_core: { label: 'Programming',   color: '#60a5fa' },
-  hardware:       { label: 'Hardware',       color: '#b0c4de' },
-  obsluha_kodu:   { label: 'Code Ops',       color: '#67e8f9' },
-  architecture:   { label: 'Architecture',   color: '#fb923c' },
-  product:        { label: 'Product',        color: '#4ade80' },
-  ux:             { label: 'UX / Frontend',  color: '#c084fc' },
-  team:           { label: 'Team & Culture', color: '#f87171' },
-  meta:           { label: 'Meta Skills',    color: '#2dd4bf' },
-  ai:             { label: 'AI & ML',        color: '#FFCD68' },
+const CATEGORIES: Record<string, { label: string; color: string; desc: string }> = {
+  technical_core: { label: 'Programming',   color: '#60a5fa', desc: 'Language mastery, algorithms, data structures, refactoring, SQL, design patterns, type systems' },
+  hardware:       { label: 'Hardware',       color: '#b0c4de', desc: 'Memory management, CPU architectures, hardware impact on code performance' },
+  obsluha_kodu:   { label: 'Code Ops',       color: '#67e8f9', desc: 'Debugging, automated testing, version control, software distribution' },
+  architecture:   { label: 'Architecture',   color: '#fb923c', desc: 'System modularity, abstractions, integration, distributed systems, scaling, observability, security, cloud' },
+  product:        { label: 'Product',        color: '#4ade80', desc: 'Product thinking, trade-off prioritization, iterative delivery, CI/CD pipelines' },
+  ux:             { label: 'UX / Frontend',  color: '#c084fc', desc: 'User empathy, implementation usability, accessibility, web performance' },
+  team:           { label: 'Team & Culture', color: '#f87171', desc: 'Tech-business communication, technical negotiation, developer mentoring' },
+  meta:           { label: 'Meta Skills',    color: '#2dd4bf', desc: 'Working with uncertainty, technology radar, personal sustainability, technical writing' },
+  ai:             { label: 'AI & ML',        color: '#FFCD68', desc: 'Prompt engineering, AI output validation, AI workflow orchestration, ML concepts' },
 };
 
 const CAT_KEYS = Object.keys(CATEGORIES);
@@ -48,6 +48,7 @@ export default function CategoryTrendChart() {
   const [skills, setSkills] = useState<SkillData[]>([]);
   const [selectedYear, setSelectedYear] = useState(2026);
   const [compareYear, setCompareYear] = useState<number | null>(2000);
+  const [hoveredCat, setHoveredCat] = useState<string | null>(null);
   const isMobile = useMediaQuery('(max-width: 768px)');
 
   useEffect(() => {
@@ -154,10 +155,18 @@ export default function CategoryTrendChart() {
             bodyColor: '#94a3b8',
             bodyFont: { size: 13 },
             padding: 14,
+            boxWidth: 0,
+            boxHeight: 0,
             callbacks: {
               title: (items: any[]) => {
                 const idx = items[0]?.dataIndex;
                 return idx !== undefined ? CAT_LABELS[idx] : '';
+              },
+              afterTitle: (items: any[]) => {
+                const idx = items[0]?.dataIndex;
+                if (idx === undefined) return '';
+                const key = CAT_KEYS[idx];
+                return CATEGORIES[key]?.desc ?? '';
               },
               label: (item: any) => `${item.dataset.label}: ${Number(item.parsed.r).toFixed(1)}`,
             },
@@ -249,8 +258,66 @@ export default function CategoryTrendChart() {
       </div>
 
       {/* Chart */}
-      <div style={{ height: isMobile ? 340 : 480, maxWidth: 600, margin: '0 auto' }}>
+      <div
+        style={{ height: isMobile ? 340 : 480, maxWidth: 600, margin: '0 auto', position: 'relative' }}
+        onMouseMove={(e) => {
+          const chart = chartRef.current;
+          if (!chart) return;
+          const rScale = chart.scales.r as any;
+          if (!rScale) return;
+          const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+          const mx = e.clientX - rect.left;
+          const my = e.clientY - rect.top;
+          const ratio = window.devicePixelRatio || 1;
+          const cx = mx * ratio;
+          const cy = my * ratio;
+
+          let found: string | null = null;
+          for (let i = 0; i < CAT_KEYS.length; i++) {
+            const lp = rScale.getPointLabelPosition(i);
+            if (!lp) continue;
+            const dx = cx - lp.x;
+            const dy = cy - lp.y;
+            if (Math.sqrt(dx * dx + dy * dy) < 40 * ratio) {
+              found = CAT_KEYS[i];
+              break;
+            }
+          }
+          setHoveredCat(found);
+        }}
+        onMouseLeave={() => setHoveredCat(null)}
+      >
         <canvas ref={canvasRef} />
+
+        {/* Category label tooltip */}
+        {hoveredCat && (
+          <div style={{
+            position: 'absolute',
+            bottom: 8,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            background: 'rgba(30,30,30,0.95)',
+            border: `1px solid ${CATEGORIES[hoveredCat].color}55`,
+            borderRadius: '0.5rem',
+            padding: '0.5rem 0.8rem',
+            maxWidth: isMobile ? '90%' : 400,
+            pointerEvents: 'none',
+            zIndex: 10,
+          }}>
+            <div style={{
+              color: CATEGORIES[hoveredCat].color,
+              fontWeight: 700,
+              fontSize: '0.85rem',
+              marginBottom: '0.2rem',
+              fontFamily: 'Raleway, Arial Black, sans-serif',
+            }}>
+              {CATEGORIES[hoveredCat].label}
+            </div>
+            <div style={{ color: '#94a3b8', fontSize: '0.78rem', lineHeight: 1.5 }}>
+              {CATEGORIES[hoveredCat].desc}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

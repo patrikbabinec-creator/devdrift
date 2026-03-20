@@ -12,6 +12,14 @@ import ComplexityChart from '../components/ComplexityChart';
   <HeroSection />
 
   <ChartSection
+    id="category-trends"
+    title="Skill Radar — Then vs Now"
+    subtitle="Average category expectation · Compare any two years"
+  >
+    <CategoryTrendChart client:only="react" />
+  </ChartSection>
+
+  <ChartSection
     id="skills-timeline"
     title="Senior Developer Skills Timeline"
     subtitle="Market expectations · 1970–2026 · Logistic S-curve model · Mainstream software development"
@@ -25,14 +33,6 @@ import ComplexityChart from '../components/ComplexityChart';
     subtitle="Estimated worldwide software developers · 1970–2026 · millions"
   >
     <PopulationChart client:only="react" />
-  </ChartSection>
-
-  <ChartSection
-    id="category-trends"
-    title="Skill Radar — Then vs Now"
-    subtitle="Average category expectation · Compare any two years"
-  >
-    <CategoryTrendChart client:only="react" />
   </ChartSection>
 
   <ChartSection
