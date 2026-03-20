@@ -124,6 +124,10 @@ export default function SkillFilters() {
     padding: isMobile ? '0.35rem 0.65rem' : '0.2rem 0.65rem',
     minHeight: isMobile ? 36 : 'auto',
     fontWeight: 500,
+    whiteSpace: 'nowrap' as const,
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    maxWidth: isMobile ? 'calc(50% - 0.35rem)' : 'none',
   };
 
   const utilBtnStyle: React.CSSProperties = {
@@ -134,7 +138,7 @@ export default function SkillFilters() {
   };
 
   return (
-    <div>
+    <div style={{ overflow: 'hidden', maxWidth: '100%' }}>
       {/* View mode indicator + controls */}
       <div style={{
         display: 'flex',

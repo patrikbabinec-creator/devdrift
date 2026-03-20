@@ -27,7 +27,7 @@ const CATEGORIES: Record<string, { label: string; color: string; desc: string }>
 const CAT_KEYS = Object.keys(CATEGORIES);
 const CAT_LABELS = CAT_KEYS.map(k => CATEGORIES[k].label);
 
-const PRESET_YEARS = [1980, 1990, 2000, 2010, 2020, 2026];
+const PRESET_YEARS = [1970, 1980, 1990, 2000, 2010, 2020, 2026];
 
 interface SkillData {
   category: string;
@@ -265,20 +265,21 @@ export default function CategoryTrendChart() {
           if (!chart) return;
           const rScale = chart.scales.r as any;
           if (!rScale) return;
-          const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-          const mx = e.clientX - rect.left;
-          const my = e.clientY - rect.top;
-          const ratio = window.devicePixelRatio || 1;
-          const cx = mx * ratio;
-          const cy = my * ratio;
+          const canvas = chart.canvas;
+          const rect = canvas.getBoundingClientRect();
+          // Convert mouse position to canvas CSS coordinates
+          const scaleX = canvas.width / rect.width;
+          const scaleY = canvas.height / rect.height;
+          const mx = (e.clientX - rect.left) * scaleX;
+          const my = (e.clientY - rect.top) * scaleY;
 
           let found: string | null = null;
           for (let i = 0; i < CAT_KEYS.length; i++) {
             const lp = rScale.getPointLabelPosition(i);
             if (!lp) continue;
-            const dx = cx - lp.x;
-            const dy = cy - lp.y;
-            if (Math.sqrt(dx * dx + dy * dy) < 40 * ratio) {
+            const dx = mx - lp.x;
+            const dy = my - lp.y;
+            if (Math.sqrt(dx * dx + dy * dy) < 50) {
               found = CAT_KEYS[i];
               break;
             }
