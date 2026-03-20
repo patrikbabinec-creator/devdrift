@@ -267,21 +267,25 @@ export default function CategoryTrendChart() {
           if (!rScale) return;
           const canvas = chart.canvas;
           const rect = canvas.getBoundingClientRect();
-          // Convert mouse position to canvas CSS coordinates
           const scaleX = canvas.width / rect.width;
           const scaleY = canvas.height / rect.height;
           const mx = (e.clientX - rect.left) * scaleX;
           const my = (e.clientY - rect.top) * scaleY;
 
           let found: string | null = null;
-          for (let i = 0; i < CAT_KEYS.length; i++) {
-            const lp = rScale.getPointLabelPosition(i);
-            if (!lp) continue;
-            const dx = mx - lp.x;
-            const dy = my - lp.y;
-            if (Math.sqrt(dx * dx + dy * dy) < 50) {
-              found = CAT_KEYS[i];
-              break;
+          // Use _pointLabelItems which has the actual text bounding box
+          const items = rScale._pointLabelItems;
+          if (items) {
+            for (let i = 0; i < CAT_KEYS.length; i++) {
+              const item = items[i];
+              if (!item) continue;
+              // Check if mouse is within the label bounding box (with padding)
+              const pad = 8;
+              if (mx >= item.left - pad && mx <= item.right + pad &&
+                  my >= item.top - pad && my <= item.bottom + pad) {
+                found = CAT_KEYS[i];
+                break;
+              }
             }
           }
           setHoveredCat(found);
